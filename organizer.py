@@ -1,21 +1,20 @@
 from pathlib import Path
 import shutil
 import sys
-
-CATEGORIES = {
-    "Images": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
-    "PDFs": [".pdf"],
-    "Documents": [".txt", ".doc", ".docx", ".odt"],
-    "Spreadsheets": [".xls", ".xlsx", ".csv"],
-    "Archives": [".zip", ".rar", ".7z"],
-}
+import json
 
 
-def get_category(extension):
-    for category, extensions in CATEGORIES.items():
+def load_categories(config_path):
+    with open(config_path, "r") as f:
+        return json.load(f)
+
+
+def get_category(extension, categories):
+    for category, extensions in categories.items():
         if extension in extensions:
             return category
     return "Other"
+
 
 def get_unique_destination(destination):
     if not destination.exists():
@@ -33,32 +32,39 @@ def get_unique_destination(destination):
         counter += 1
 
 
-def organize(folder):
+def organize(folder, categories, dry_run=False):
     for item in folder.iterdir():
         if not item.is_file():
             continue
 
-        category = get_category(item.suffix.lower())
+        category = get_category(item.suffix.lower(), categories)
         target_dir = folder / category
         target_dir.mkdir(exist_ok=True)
 
         destination = target_dir / item.name
         destination = get_unique_destination(destination)
 
-        shutil.move(str(item), str(destination))
-        print(f"Moved {item.name} -> {destination.relative_to(folder)}")
+        if dry_run:
+            print(f"Would move {item.name} -> {category}/{destination.name}")
+        else:
+            try:
+                shutil.move(str(item), str(destination))
+                print(f"Moved {item.name} -> {destination.relative_to(folder)}")
+            except (PermissionError, OSError) as e:
+                print(f"Skipped {item.name}: {e}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python organizer.py <folder_path>")
+    if len(sys.argv) < 2:
+        print("Usage: python organizer.py <folder_path> [--dry-run]")
         sys.exit(1)
 
     target_folder = Path(sys.argv[1])
+    dry_run = "--dry-run" in sys.argv
 
     if not target_folder.is_dir():
         print(f"Error: {target_folder} is not a valid folder")
         sys.exit(1)
 
-    organize(target_folder)
-
+    categories = load_categories(Path(__file__).parent / "categories.json")
+    organize(target_folder, categories, dry_run=dry_run)

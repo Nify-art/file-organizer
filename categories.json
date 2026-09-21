@@ -1,0 +1,7 @@
+{
+    "Images": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+    "PDFs": [".pdf"],
+    "Documents": [".txt", ".doc", ".docx", ".odt"],
+    "Spreadsheets": [".xls", ".xlsx", ".csv"],
+    "Archives": [".zip", ".rar", ".7z"]
+}
